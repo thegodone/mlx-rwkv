@@ -16,14 +16,16 @@ class RWKVConfig:
     head_size = 64
     head_size_divisor = 8
 
-# TODO: Add roll support to mlx to avoid this conversion
 def time_shift(x: mx.array):
-    tx = np.array(x.astype(mx.float32))
-    cn = np.roll(tx, 1, axis=x.ndim-2)
-    mask = np.ones(tx.shape[-1])
-    mask[0] = 0
-    mask = np.expand_dims(mask, mask.ndim)
-    return mx.array(cn * mask).astype(x.dtype)
+    # Use mlx.core.roll for rolling the array along the second-to-last axis
+    rolled_x = mx.roll(x, shift=1, axis=x.ndim - 2)
+    
+    # Create a mask with the first element set to 0, rest to 1
+    mask = mx.ones_like(x[..., :1])  # Create a mask with the same type as x
+    mask[..., 0] = 0
+
+    # Apply the mask to the rolled tensor
+    return rolled_x * mask
 
 class RWKVChannelMix(nn.Module):
     def __init__(self, config: RWKVConfig):
